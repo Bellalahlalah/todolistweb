@@ -1,4 +1,4 @@
-
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 import { supabase } from '@/lib/supabaseClient'
 
 export default async function handler(req, res) {

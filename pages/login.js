@@ -1,3 +1,5 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+
 import { Router } from 'next/router';
 import { useState } from 'react';
 
