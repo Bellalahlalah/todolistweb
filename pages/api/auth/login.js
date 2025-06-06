@@ -20,6 +20,8 @@ export default async function handler(req, res) {
       password
     })
 
+    console.log("ACCESS TOKEN:", data.session.access_token);
+
     if (error) {
       console.error('❌ Supabase login error:', error.message)
       return res.status(401).json({ error: error.message })
