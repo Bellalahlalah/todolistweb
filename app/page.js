@@ -24,10 +24,11 @@ export default function Home() {
     name: '',
     work_group: '',
     work_description: '',
-    quantity: '',
-    assignment_date: '',
+    quantity: '1',
+    assignment_date: new Date().toISOString().slice(0, 10), // ใช้วันที่ปัจจุบันเป็นค่าเริ่มต้น
     plan_date: '',
     deadline: '',
+    status: 'Select', // ค่าเริ่มต้นสำหรับ status
   });
 
   // ดึงข้อมูล To-Do จาก Supabase
@@ -48,16 +49,17 @@ export default function Home() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.work_group) return;
-    const { error } = await supabase.from('todolists').insert([{ ...form, status: 'Pending' }]);
+    const { error } = await supabase.from('todolists').insert([{ ...form }]);
     if (!error) {
       setForm({
         name: '',
         work_group: '',
         work_description: '',
-        quantity: '',
-        assignment_date: '',
+        quantity: '1',
+        assignment_date: new Date().toISOString().slice(0, 10), // ใช้วันที่ปัจจุบันเป็นค่าเริ่มต้น
         plan_date: '',
         deadline: '',
+        status: 'Select', // รีเซ็ตค่า status เป็น Select
       });
       fetchtodolists(); // รีเฟรชข้อมูล
     }
@@ -75,12 +77,91 @@ export default function Home() {
   fetchtodolists();
   };
 
+  // แก้ไขข้อมูล To-Do ใน Supabase
+  const [editId, setEditId] = useState(null);
+  const handleEdit = (idx) => {
+    const todo = todolists[idx];
+    setForm({
+      name: todo.name,
+      work_group: todo.work_group,
+      work_description: todo.work_description,
+      quantity: todo.quantity,
+      assignment_date: todo.assignment_date,
+      plan_date: todo.plan_date,
+      deadline: todo.deadline,
+      status: todo.status,
+    });
+    setEditId(todo.id);
+  };
+
+  const handleUpdate = async (e) => {
+  e.preventDefault();
+    if (!form.name || !form.work_group) return;
+    const { error } = await supabase
+      .from('todolists')
+      .update({ ...form })
+      .eq('id', editId);
+    if (!error) {
+      setForm({
+        name: '',
+        work_group: '',
+        work_description: '',
+        quantity: '1',
+        assignment_date: new Date().toISOString().slice(0, 10),
+        plan_date: '',
+        deadline: '',
+        status: 'Select',
+      });
+      setEditId(null);
+      fetchtodolists();
+    }
+  };
+
   const handleLogout = async () => {
   await supabase.auth.signOut();
   // ถ้ามี session ใน localStorage ให้ลบด้วย (ถ้าเคยใช้)
   localStorage.removeItem("supabaseSession");
   router.push("/login");
   };
+
+//Export to CSV File
+const handleExport = () => {
+  if (!todolists.length) return;
+  const header = [
+    "ชื่อ",
+    "กลุ่มงาน",
+    "รายละเอียด",
+    "จำนวน",
+    "วันที่สั่งงาน",
+    "วันที่จะทำ",
+    "Deadline",
+    "Status"
+  ];
+  const rows = todolists.map(todo => [
+    todo.name,
+    todo.work_group,
+    todo.work_description,
+    todo.quantity,
+    todo.assignment_date,
+    todo.plan_date,
+    todo.deadline,
+    todo.status
+  ]);
+  const csvContent =
+    [header, ...rows]
+      .map(row => row.map(field => `"${(field ?? '').toString().replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "todolist.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 
   return (
     <>
@@ -98,7 +179,7 @@ export default function Home() {
       <div className="container my-5">
         <div className="d-flex custom-flex gap-4 align-items-start">
           {/* Left side form */}
-          <div className="col-md-4" style={{minWidth:320, maxWidth:150, width:'100%'}}>
+          <div className="col-md-4" style={{minWidth:250, maxWidth:150, width:'100%'}}>
             <div className="card shadow-sm p-3">
               <div className="card-body">
                 <h5 className="card-title mb-3">สร้าง To-Do ใหม่</h5>
@@ -112,10 +193,13 @@ export default function Home() {
                       onChange={handleChange}
                       required
                     >
-                      <option value="">เลือก</option>
+                      <option value="">Select</option>
+                      <option value="Charoean">Charoean</option>
+                      <option value="Supitcha">Supitcha</option>
+                      <option value="Newwalux">Newwalux</option>
+                      <option value="Watchara">Watchara</option>
+                      <option value="Pantiwa">Pantiwa</option>
                       <option value="Nunthawun">Nunthawun</option>
-                      <option value="Lunchakorn">Lunchakorn</option>
-                      <option value="Sai-Mhok">Sai-Mhok</option>
                     </select>
                   </div>
                   <div className="mb-3">
@@ -127,10 +211,14 @@ export default function Home() {
                       onChange={handleChange}
                       required
                     >
-                      <option value="">เลือก</option>
+                      <option value="">Select</option>
                       <option value="CAPEX">CAPEX</option>
                       <option value="OPEX">OPEX</option>
+                      <option value="FLEQ">FLEQ</option>
                       <option value="Master Data">Master Data</option>
+                      <option value="Development">Development</option>
+                      <option value="Data analyst">Data analyst</option>
+                      <option value="Meeting">Meeting</option>
                     </select>
                   </div>
                   <div className="mb-3">
@@ -142,6 +230,7 @@ export default function Home() {
                       value={form.work_description}
                       onChange={handleChange}
                       placeholder="อธิบายเนื้องาน"
+                      required
                     />
                   </div>
                   <div className="mb-3">
@@ -153,16 +242,19 @@ export default function Home() {
                       value={form.quantity}
                       onChange={handleChange}
                       placeholder="ระบุจำนวน"
+                      min="1"
+                      required
                     />
                   </div>
                   <div className="mb-3">
                     <label className="form-label">วันที่สั่งงาน</label>
                     <input
                       type="date"
-                      className="form-control"
+                      className={`form-control${form.assignment_date === new Date().toISOString().slice(0, 10) ? " grey-bg" : ""}`}
                       name="assignment_date"
                       value={form.assignment_date}
                       onChange={handleChange}
+                      required
                     />
                   </div>
                   <div className="mb-3">
@@ -173,6 +265,7 @@ export default function Home() {
                       name="plan_date"
                       value={form.plan_date}
                       onChange={handleChange}
+                      required
                     />
                   </div>
                   <div className="mb-3">
@@ -183,33 +276,84 @@ export default function Home() {
                       name="deadline"
                       value={form.deadline}
                       onChange={handleChange}
+                      required
                     />
                   </div>
-                  <button type="submit" className="btn btn-primary w-100 mt-2 text-white">
-                    เพิ่ม To-Do
-                  </button>
+                  <div className="mb-3">
+                    <label className="form-label">Status</label>
+                    <select
+                      className="form-select"
+                      name="status"
+                      value={form.status || "Select" }
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Select</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Ongoing">Ongoing</option>
+                      <option value="Delay">Delay</option>
+                      <option value="Complete">Complete</option>
+                    </select>
+                  </div>
+                  {/* ปุ่มเพิ่ม/บันทึกการแก้ไข */}
+                  {editId ? (
+                    <button type="button" className="btn btn-warning w-100 mt-2 text-white" onClick={handleUpdate}>
+                      บันทึกการแก้ไข
+                    </button>
+                  ) : (
+                    <button type="submit" className="btn btn-primary w-100 mt-2 text-white">
+                      เพิ่ม To-Do
+                    </button>
+                  )}
+
+                  {/*Clear Button */}
+                  <button
+                  type="button"
+                  className="btn btn-secondary w-100 mt-2 text-white" 
+                  onClick={() =>
+                    setForm({
+                      name: '',
+                      work_group: '',
+                      work_description: '',
+                      quantity: '1',
+                      assignment_date: new Date().toISOString().slice(0, 10),
+                      plan_date: '',
+                      deadline: '',
+                      status: 'Select',
+                    })
+                  }
+                  >
+                  Clear Filter
+                </button>
                 </form>
               </div>
             </div>
           </div>
           {/* Right side table */}
-          <div className="col-md-8" style={{width:'80%',  minWidth:0}}>
+          <div className="col-md-8" style={{overflowX:'auto', width:'80%',  minWidth:0}}>
             <div className="card shadow-sm p-3 flex">
               <div className="card-body">
-                <h5 className="card-title mb-3">รายการ To-Do</h5>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="card-title mb-0">รายการ To-Do</h5>
+                  <button className="btn btn-success btn-sm text-white" onClick={handleExport}>
+                    Export CSV
+                  </button>
+                </div>
                 <div className="table-responsive"  style={{overflowX: 'auto', maxWidth: '100%'}}>
-                  <table className="table table-striped table-bordered align-middle mb-0">
+                  <table className="table table-striped table-bordered align-middle mb-0"
+                  style={{ width: "100%", tableLayout: "fixed", fontSize: "0.75rem" }}>
                     <thead>
                       <tr>
-                        <th>#</th>
-                        <th>ชื่อ</th>
+                        <th style={{ width: "40px", textAlign: "center" }}>#</th>
+                        <th style={{ width: "90px" }}>ชื่อ</th>
                         <th>กลุ่มงาน</th>
                         <th>รายละเอียด</th>
-                        <th>จำนวน</th>
+                        <th style={{ width: "60px", textAlign: "left" }}>จำนวน</th>
                         <th>วันที่สั่งงาน</th>
                         <th>วันที่จะทำ</th>
                         <th>Deadline</th>
                         <th>Status</th>
+                        <th>แก้ไข</th>
                         <th>ลบ</th>
                       </tr>
                     </thead>
@@ -225,8 +369,29 @@ export default function Home() {
                           <td>{todo.plan_date}</td>
                           <td>{todo.deadline}</td>
                           <td>
-                            <span className="badge bg-warning text-dark">{todo.status}</span>
+                            {todo.status === "Pending" && (
+                              <span className="badge bg-warning text-dark">Pending</span>
+                            )}
+                            {todo.status === "Ongoing" && (
+                              <span className="badge bg-primary">Ongoing</span>
+                            )}
+                            {todo.status === "Delay" && (
+                              <span className="badge bg-danger">Delay</span>
+                            )}
+                            {todo.status === "Complete" && (
+                              <span className="badge bg-success">Complete</span>
+                            )}
                           </td>
+                          {/*Edit Button */}
+                          <td>
+                            <button
+                              className="btn btn-warning btn-sm"
+                              onClick={() => handleEdit(idx)}
+                            >
+                              แก้ไข
+                            </button>
+                          </td>
+                          {/*Deletes Button */}
                           <td>
                             <button
                               className="btn btn-danger btn-sm"
