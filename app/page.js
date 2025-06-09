@@ -162,6 +162,14 @@ const handleExport = () => {
   URL.revokeObjectURL(url);
 };
 
+const [filterGroup, setFilterGroup] = useState("");
+
+const filteredTodolists = filterGroup
+  ? todolists.filter(todo => todo.work_group === filterGroup)
+  : todolists;
+  const handleFilterChange = (e) => {
+    setFilterGroup(e.target.value);
+  };
 
   return (
     <>
@@ -219,6 +227,7 @@ const handleExport = () => {
                       <option value="Development">Development</option>
                       <option value="Data analyst">Data analyst</option>
                       <option value="Meeting">Meeting</option>
+                      <option value="Teaching">Teaching</option>
                     </select>
                   </div>
                   <div className="mb-3">
@@ -335,19 +344,45 @@ const handleExport = () => {
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h5 className="card-title mb-0">รายการ To-Do</h5>
-                  <button className="btn btn-success btn-sm text-white" onClick={handleExport}>
-                    Export CSV
-                  </button>
+                  <div className="d-flex gap-2 align-items-center">
+                    <select
+                      className="form-select form-select-sm"
+                      style={{ width: 150}}
+                      value={filterGroup}
+                      onChange={e => setFilterGroup(e.target.value)}
+                    >
+                      <option value="">ทุกกลุ่มงาน</option>
+                      <option value="CAPEX">CAPEX</option>
+                      <option value="OPEX">OPEX</option>
+                      <option value="FLEQ">FLEQ</option>
+                      <option value="Master Data">Master Data</option>
+                      <option value="Development">Development</option>
+                      <option value="Data analyst">Data analyst</option>
+                      <option value="Meeting">Meeting</option>
+                      <option value="Teaching">Teaching</option>
+                    </select>
+                    {filterGroup && (
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setFilterGroup("")}
+                      >
+                        clear Filter
+                      </button>
+                    )}
+                    <button className="btn btn-success btn-sm text-white" onClick={handleExport}>
+                      Export CSV
+                    </button>
+                  </div>
                 </div>
                 <div className="table-responsive"  style={{overflowX: 'auto', maxWidth: '100%'}}>
                   <table className="table table-striped table-bordered align-middle mb-0"
-                  style={{ width: "100%", tableLayout: "fixed", fontSize: "0.75rem" }}>
+                  style={{ width: "100%", tableLayout: "fixed", fontSize: "0.78rem" }}>
                     <thead>
                       <tr>
                         <th style={{ width: "40px", textAlign: "center" }}>#</th>
                         <th style={{ width: "90px" }}>ชื่อ</th>
                         <th>กลุ่มงาน</th>
-                        <th>รายละเอียด</th>
+                        <th style={{ width: "150px" }}>รายละเอียด</th>
                         <th style={{ width: "60px", textAlign: "left" }}>จำนวน</th>
                         <th>วันที่สั่งงาน</th>
                         <th>วันที่จะทำ</th>
@@ -358,8 +393,19 @@ const handleExport = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {todolists.map((todo, idx) => (
-                        <tr key={todo.id}>
+                      {filteredTodolists.map((todo, idx) => (
+                        <tr
+                          key={todo.id}
+                          className={
+                            todo.work_group === "CAPEX"
+                              ? "tr-capex"
+                              : todo.work_group === "OPEX"
+                              ? "tr-opex"
+                              : todo.work_group === "FLEQ" || todo.work_group === "Teaching"
+                              ? "tr-fleq"
+                              : ""
+                          }
+                        >
                           <td>{idx + 1}</td>
                           <td>{todo.name}</td>
                           <td>{todo.work_group}</td>

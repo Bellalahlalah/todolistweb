@@ -61,3 +61,7 @@ label, th, td, .card-title, .btn, .form-label {
 input[type="date"].grey-bg {
   background-color: #e9ecef !important;
 }
+
+.tr-capex { background: #faf19c !important; }
+.tr-opex { background: #aad2ff !important; }
+.tr-fleq, .tr-teaching { background: #e8bbfd !important; }
