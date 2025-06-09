@@ -363,7 +363,7 @@ const filteredTodolists = filterGroup
                     </select>
                     {filterGroup && (
                       <button
-                        className="btn btn-secondary btn-sm"
+                        className="btn btn-secondary btn-sm text-white"
                         onClick={() => setFilterGroup("")}
                       >
                         clear Filter
