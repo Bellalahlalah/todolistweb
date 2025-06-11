@@ -202,7 +202,7 @@ const handleEdit = (id) => {
     <>
       <div className="bg-primary text-white py-4 mb-4 text-center rounded" style={{background:'#e3f2fd', color:'#111'}}>
         <h1 className="mb-0" >To-Do List Manager</h1>
-        <p className="mb-0" >จัดการงานของคุณอย่างมีประสิทธิภาพ</p>
+        <p className="mb-0" >Dev. by Bellalahlalah</p>
       </div>
       <button
         onClick={handleLogout}
