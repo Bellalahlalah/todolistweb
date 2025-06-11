@@ -77,23 +77,6 @@ export default function Home() {
   fetchtodolists();
   };
 
-  // แก้ไขข้อมูล To-Do ใน Supabase
-  const [editId, setEditId] = useState(null);
-  const handleEdit = (idx) => {
-    const todo = todolists[idx];
-    setForm({
-      name: todo.name,
-      work_group: todo.work_group,
-      work_description: todo.work_description,
-      quantity: todo.quantity,
-      assignment_date: todo.assignment_date,
-      plan_date: todo.plan_date,
-      deadline: todo.deadline,
-      status: todo.status,
-    });
-    setEditId(todo.id);
-  };
-
   const handleUpdate = async (e) => {
   e.preventDefault();
     if (!form.name || !form.work_group) return;
@@ -163,13 +146,57 @@ const handleExport = () => {
 };
 
 const [filterGroup, setFilterGroup] = useState("");
+const [sortField, setSortField] = useState(""); // "plan_date" หรือ "deadline"
+const [sortOrder, setSortOrder] = useState("asc"); // "asc" หรือ "desc"
 
-const filteredTodolists = filterGroup
-  ? todolists.filter(todo => todo.work_group === filterGroup)
-  : todolists;
-  const handleFilterChange = (e) => {
-    setFilterGroup(e.target.value);
-  };
+//funtion sort todolists
+const getSortedTodolists = (list) => {
+  if (!sortField) return list;
+  return [...list].sort((a, b) => {
+    if (!a[sortField]) return 1;
+    if (!b[sortField]) return -1;
+    if (sortOrder === "asc") {
+      return a[sortField].localeCompare(b[sortField]);
+    } else {
+      return b[sortField].localeCompare(a[sortField]);
+    }
+  });
+};
+
+// ฟังก์ชัน filter + sort
+const filteredTodolists = getSortedTodolists(
+  filterGroup
+    ? todolists.filter(todo => todo.work_group === filterGroup)
+    : todolists
+);
+
+// เวลากดปุ่ม sort
+const handleSort = (field) => {
+  if (sortField === field) {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+  } else {
+    setSortField(field);
+    setSortOrder("asc");
+  }
+};
+// เวลาจะแก้ไข ให้เก็บ id ของ To-Do ที่จะแก้ไข
+const [editId, setEditId] = useState(null);
+// เวลากดแก้ไข ให้ใช้ id
+const handleEdit = (id) => {
+  const todo = todolists.find(t => t.id === id);
+  if (!todo) return;
+  setForm({
+    name: todo.name,
+    work_group: todo.work_group,
+    work_description: todo.work_description,
+    quantity: todo.quantity,
+    assignment_date: todo.assignment_date,
+    plan_date: todo.plan_date,
+    deadline: todo.deadline,
+    status: todo.status,
+  });
+  setEditId(todo.id);
+};
 
   return (
     <>
@@ -366,7 +393,7 @@ const filteredTodolists = filterGroup
                         className="btn btn-secondary btn-sm text-white"
                         onClick={() => setFilterGroup("")}
                       >
-                        clear Filter
+                        Clear filter
                       </button>
                     )}
                     <button className="btn btn-success btn-sm text-white" onClick={handleExport}>
@@ -385,8 +412,32 @@ const filteredTodolists = filterGroup
                         <th style={{ width: "150px" }}>รายละเอียด</th>
                         <th style={{ width: "60px", textAlign: "left" }}>จำนวน</th>
                         <th>วันที่สั่งงาน</th>
-                        <th>วันที่จะทำ</th>
-                        <th>Deadline</th>
+                        <th
+                          style={{ width: "100px", cursor: "pointer", userSelect: "none" }}
+                          onClick={() => handleSort("plan_date")}
+                        >
+                          วันที่จะทำ{" "}
+                          <span style={{fontSize:"1rem"}}>
+                            {sortField === "plan_date"
+                              ? sortOrder === "asc"
+                                ? "▲"
+                                : "▼"
+                              : <span style={{color:"#bbb"}}>⇅</span>}
+                          </span>
+                        </th>
+                        <th
+                          style={{ width: "100px", cursor: "pointer", userSelect: "none" }}
+                          onClick={() => handleSort("deadline")}
+                        >
+                          Deadline{" "}
+                          <span style={{fontSize:"1rem"}}>
+                            {sortField === "deadline"
+                              ? sortOrder === "asc"
+                                ? "▲"
+                                : "▼"
+                              : <span style={{color:"#bbb"}}>⇅</span>}
+                          </span>
+                        </th>
                         <th>Status</th>
                         <th>แก้ไข</th>
                         <th>ลบ</th>
@@ -432,7 +483,7 @@ const filteredTodolists = filterGroup
                           <td>
                             <button
                               className="btn btn-warning btn-sm"
-                              onClick={() => handleEdit(idx)}
+                              onClick={() => handleEdit(todo.id)}
                             >
                               แก้ไข
                             </button>
