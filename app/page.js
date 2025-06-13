@@ -66,8 +66,8 @@ export default function Home() {
   };
 
   // ลบข้อมูล To-Do ใน Supabase
-  const handleDelete = async (idx) => {
-  const todo = todolists[idx];
+  const handleDelete = async (id) => {
+  const todo = todolists.find(t => t.id === id);
   if (!todo) return;
   console.log('จะลบ todo:', todo); // เพิ่มบรรทัดนี้
   const { error } = await supabase.from('todolists').delete().eq('id', todo.id);
@@ -492,7 +492,7 @@ const handleEdit = (id) => {
                           <td>
                             <button
                               className="btn btn-danger btn-sm"
-                              onClick={() => handleDelete(idx)}
+                              onClick={() => handleDelete(todo.id)}
                             >
                               ลบ
                             </button>
