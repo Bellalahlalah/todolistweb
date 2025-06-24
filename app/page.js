@@ -107,6 +107,10 @@ export default function Home() {
   router.push("/login");
   };
 
+  const handleAdmin = async () => {
+  router.push("/admin");
+  };
+
 //Export to CSV File
 const handleExport = () => {
   if (!todolists.length) return;
@@ -205,12 +209,20 @@ const handleEdit = (id) => {
         <p className="mb-0" >Dev. by Bellalahlalah</p>
       </div>
       <button
+        onClick={handleAdmin}
+        className="btn btn-light text-blue"
+        style={{ position: "absolute", top: 70, right: 120, zIndex: 10 }}
+      >
+        Admin
+      </button>
+      <button
         onClick={handleLogout}
         className="btn btn-danger text-white"
-        style={{ position: "absolute", top: 24, right: 32, zIndex: 10 }}
+        style={{ position: "absolute", top: 70, right: 32, zIndex: 10 }}
       >
         Logout
       </button>
+
       <div className="container my-5">
         <div className="d-flex custom-flex gap-4 align-items-start">
           {/* Left side form */}
