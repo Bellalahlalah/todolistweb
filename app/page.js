@@ -20,6 +20,7 @@ export default function Home() {
   }, [router]);
 
   const [todolists, settodolists] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [form, setForm] = useState({
     name: '',
     work_group: '',
@@ -36,8 +37,25 @@ export default function Home() {
     fetchtodolists();
   }, []);
 
+  // ตรวจสอบ role ของผู้ใช้เพื่อตัดสินใจว่าจะโชว์ปุ่ม Admin หรือไม่
+  useEffect(() => {
+    const fetchRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      setIsAdmin(profile?.role === 'admin');
+    };
+    fetchRole();
+  }, []);
+
   const fetchtodolists = async () => {
-    const { data, error } = await supabase.from('todolists').select('*').order('id', { ascending: true });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('todolists')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('id', { ascending: true });
     if (!error) settodolists(data);
   };
 
@@ -49,7 +67,8 @@ export default function Home() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.work_group) return;
-    const { error } = await supabase.from('todolists').insert([{ ...form }]);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from('todolists').insert([{ ...form, user_id: user.id }]);
     if (!error) {
       setForm({
         name: '',
@@ -138,7 +157,8 @@ const handleExport = () => {
     [header, ...rows]
       .map(row => row.map(field => `"${(field ?? '').toString().replace(/"/g, '""')}"`).join(","))
       .join("\r\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const BOM = "\uFEFF"; // UTF-8 BOM so Excel recognizes UTF-8 (fixes Thai garbling)
+  const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -208,13 +228,15 @@ const handleEdit = (id) => {
         <h1 className="mb-0" >To-Do List Manager</h1>
         <p className="mb-0" >Dev. by Bellalahlalah</p>
       </div>
-      <button
-        onClick={handleAdmin}
-        className="btn btn-light text-blue"
-        style={{ position: "absolute", top: 70, right: 120, zIndex: 10 }}
-      >
-        Admin
-      </button>
+      {isAdmin && (
+        <button
+          onClick={handleAdmin}
+          className="btn btn-light text-blue"
+          style={{ position: "absolute", top: 70, right: 120, zIndex: 10 }}
+        >
+          Admin
+        </button>
+      )}
       <button
         onClick={handleLogout}
         className="btn btn-danger text-white"
@@ -259,14 +281,13 @@ const handleEdit = (id) => {
                       required
                     >
                       <option value="">Select</option>
-                      <option value="CAPEX">CAPEX</option>
-                      <option value="OPEX">OPEX</option>
-                      <option value="FLEQ">FLEQ</option>
                       <option value="Master Data">Master Data</option>
+                      <option value="OPEX">OPEX</option>
+                      <option value="CAPEX">CAPEX</option>
+                      <option value="Competency">Competency</option>
                       <option value="Development">Development</option>
-                      <option value="Data analyst">Data analyst</option>
                       <option value="Meeting">Meeting</option>
-                      <option value="Teaching">Teaching</option>
+                      <option value="Other">Other</option>
                     </select>
                   </div>
                   <div className="mb-3">
@@ -378,7 +399,7 @@ const handleEdit = (id) => {
             </div>
           </div>
           {/* Right side table */}
-          <div className="col-md-8" style={{overflowX:'auto', width:'80%',  minWidth:0}}>
+            <div className="col-md-8" style={{overflowX:'auto', width:'80%',  minWidth:0}}>
             <div className="card shadow-sm p-3 flex">
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-center mb-3">
@@ -391,14 +412,13 @@ const handleEdit = (id) => {
                       onChange={e => setFilterGroup(e.target.value)}
                     >
                       <option value="">ทุกกลุ่มงาน</option>
-                      <option value="CAPEX">CAPEX</option>
-                      <option value="OPEX">OPEX</option>
-                      <option value="FLEQ">FLEQ</option>
                       <option value="Master Data">Master Data</option>
+                      <option value="OPEX">OPEX</option>
+                      <option value="CAPEX">CAPEX</option>
+                      <option value="Competency">Competency</option>
                       <option value="Development">Development</option>
-                      <option value="Data analyst">Data analyst</option>
                       <option value="Meeting">Meeting</option>
-                      <option value="Teaching">Teaching</option>
+                      <option value="Other">Other</option>
                     </select>
                     {filterGroup && (
                       <button

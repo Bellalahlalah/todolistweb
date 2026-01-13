@@ -12,6 +12,11 @@ function AdminPage() {
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filterName, setFilterName] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [planFrom, setPlanFrom] = useState("");
+  const [planTo, setPlanTo] = useState("");
+  const [deadlineFrom, setDeadlineFrom] = useState("");
+  const [deadlineTo, setDeadlineTo] = useState("");
 
   useEffect(() => {
     const fetchRoleAndData = async () => {
@@ -71,7 +76,8 @@ function AdminPage() {
     const csvContent = [header, ...rows]
       .map(row => row.map(field => `"${(field ?? '').toString().replace(/"/g, '""')}"`).join(","))
       .join("\r\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const BOM = "\uFEFF"; // UTF-8 BOM so Excel recognizes UTF-8 (fixes Thai garbling)
+    const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -85,9 +91,14 @@ function AdminPage() {
   // สร้างรายการชื่อที่ไม่ซ้ำจาก todos
   const uniqueNames = [...new Set(todos.map(t => t.name).filter(Boolean))];
 
-  const filteredTodos = filterName
-    ? todos.filter(t => t.name === filterName)
-    : todos;
+  // Apply chained filters: name -> status -> plan_date range -> deadline range
+  const filteredTodos = todos
+    .filter(t => (filterName ? t.name === filterName : true))
+    .filter(t => (filterStatus ? t.status === filterStatus : true))
+    .filter(t => (planFrom ? (t.plan_date && t.plan_date >= planFrom) : true))
+    .filter(t => (planTo ? (t.plan_date && t.plan_date <= planTo) : true))
+    .filter(t => (deadlineFrom ? (t.deadline && t.deadline >= deadlineFrom) : true))
+    .filter(t => (deadlineTo ? (t.deadline && t.deadline <= deadlineTo) : true));
 
   return (
     <> 
@@ -113,7 +124,7 @@ function AdminPage() {
       <div className="container my-5">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h3 className="mb-0">Admin: ข้อมูล To-Do ทั้งหมด</h3>
-          <div className="d-flex gap-2 align-items-center">
+          <div className="d-flex gap-2 align-items-center flex-wrap">
             <select
               className="form-select form-select-sm"
               style={{ width: 220 }}
@@ -128,6 +139,38 @@ function AdminPage() {
             {filterName && (
               <button className="btn btn-secondary btn-sm text-white" onClick={() => setFilterName('')}>Clear</button>
             )}
+
+            <select
+              className="form-select form-select-sm"
+              style={{ width: 150 }}
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+            >
+              <option value="">ทุกสถานะ</option>
+              <option value="Pending">Pending</option>
+              <option value="Ongoing">Ongoing</option>
+              <option value="Delay">Delay</option>
+              <option value="Complete">Complete</option>
+            </select>
+
+            <div className="d-flex gap-1 align-items-center">
+              <label className="small mb-0 me-1">วันที่จะทำ:</label>
+              <input type="date" className="form-control form-control-sm" value={planFrom} onChange={e => setPlanFrom(e.target.value)} />
+              <span className="small mx-1">to</span>
+              <input type="date" className="form-control form-control-sm" value={planTo} onChange={e => setPlanTo(e.target.value)} />
+            </div>
+
+            <div className="d-flex gap-1 align-items-center">
+              <label className="small mb-0 me-1">Deadline:</label>
+              <input type="date" className="form-control form-control-sm" value={deadlineFrom} onChange={e => setDeadlineFrom(e.target.value)} />
+              <span className="small mx-1">to</span>
+              <input type="date" className="form-control form-control-sm" value={deadlineTo} onChange={e => setDeadlineTo(e.target.value)} />
+            </div>
+
+            {(filterName || filterStatus || planFrom || planTo || deadlineFrom || deadlineTo) && (
+              <button className="btn btn-secondary btn-sm text-white" onClick={() => { setFilterName(''); setFilterStatus(''); setPlanFrom(''); setPlanTo(''); setDeadlineFrom(''); setDeadlineTo(''); }}>Clear All</button>
+            )}
+
             <button className="btn btn-success btn-sm text-white" onClick={handleExport}>Export CSV</button>
           </div>
         </div>
