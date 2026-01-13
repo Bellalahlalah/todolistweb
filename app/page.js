@@ -292,13 +292,14 @@ const handleEdit = (id) => {
                   </div>
                   <div className="mb-3">
                     <label className="form-label">รายละเอียดงาน</label>
-                    <input
-                      type="text"
+                    <textarea
                       className="form-control"
                       name="work_description"
                       value={form.work_description}
                       onChange={handleChange}
                       placeholder="อธิบายเนื้องาน"
+                      rows={6}
+                      style={{ minHeight: 120, resize: 'vertical' }}
                       required
                     />
                   </div>
