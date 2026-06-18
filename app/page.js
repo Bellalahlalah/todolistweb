@@ -21,6 +21,7 @@ export default function Home() {
 
   const [todolists, settodolists] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userName, setUserName] = useState("");
   const [form, setForm] = useState({
     name: '',
     work_group: '',
@@ -40,10 +41,15 @@ export default function Home() {
   // ตรวจสอบ role ของผู้ใช้เพื่อตัดสินใจว่าจะโชว์ปุ่ม Admin หรือไม่
   useEffect(() => {
     const fetchRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-      setIsAdmin(profile?.role === 'admin');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      if (!profileError && profile) {
+        setIsAdmin(profile.role === 'admin');
+        setUserName(profile.name || '');
+      } else {
+        console.error('fetchRole error:', profileError);
+      }
     };
     fetchRole();
   }, []);
@@ -68,19 +74,19 @@ export default function Home() {
     e.preventDefault();
     if (!form.name || !form.work_group) return;
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('todolists').insert([{ ...form, user_id: user.id }]);
+    const { error } = await supabase.from('todolists').insert([{ ...form, name: userName || form.name, user_id: user.id }]);
     if (!error) {
       setForm({
-        name: '',
+        name: userName,
         work_group: '',
         work_description: '',
         quantity: '1',
-        assignment_date: new Date().toISOString().slice(0, 10), // ใช้วันที่ปัจจุบันเป็นค่าเริ่มต้น
+        assignment_date: new Date().toISOString().slice(0, 10),
         plan_date: '',
         deadline: '',
-        status: 'Select', // รีเซ็ตค่า status เป็น Select
+        status: 'Select',
       });
-      fetchtodolists(); // รีเฟรชข้อมูล
+      fetchtodolists();
     }
   };
 
@@ -101,11 +107,11 @@ export default function Home() {
     if (!form.name || !form.work_group) return;
     const { error } = await supabase
       .from('todolists')
-      .update({ ...form })
+      .update({ ...form, name: userName || form.name })
       .eq('id', editId);
     if (!error) {
       setForm({
-        name: '',
+        name: userName,
         work_group: '',
         work_description: '',
         quantity: '1',
@@ -224,26 +230,16 @@ const handleEdit = (id) => {
 
   return (
     <>
-      <div className="bg-primary text-white py-4 mb-4 text-center rounded" style={{background:'#e3f2fd', color:'#111'}}>
+      <div className="bg-primary text-white py-4 mb-4 text-center" style={{background:'#e3f2fd', color:'#111', position:'sticky', top:0, zIndex:100}}>
         <h1 className="mb-0" >To-Do List Manager</h1>
         <p className="mb-0" >Dev. by Bellalahlalah</p>
+        <div style={{ position: "absolute", top: "50%", right: 16, transform: "translateY(-50%)", display: "flex", gap: 8 }}>
+          {isAdmin && (
+            <button onClick={handleAdmin} className="btn btn-light btn-sm">Admin</button>
+          )}
+          <button onClick={handleLogout} className="btn btn-danger btn-sm text-white">Logout</button>
+        </div>
       </div>
-      {isAdmin && (
-        <button
-          onClick={handleAdmin}
-          className="btn btn-light text-blue"
-          style={{ position: "absolute", top: 70, right: 120, zIndex: 10 }}
-        >
-          Admin
-        </button>
-      )}
-      <button
-        onClick={handleLogout}
-        className="btn btn-danger text-white"
-        style={{ position: "absolute", top: 70, right: 32, zIndex: 10 }}
-      >
-        Logout
-      </button>
 
       <div className="container my-5">
         <div className="d-flex custom-flex gap-4 align-items-start">
@@ -258,9 +254,10 @@ const handleEdit = (id) => {
                     <select
                       className="form-select"
                       name="name"
-                      value={form.name}
+                      value={userName || form.name}
                       onChange={handleChange}
-                      required
+                      disabled={!!userName}
+                      required={!userName}
                     >
                       <option value="">Select</option>
                       <option value="Charoean">Charoean</option>
@@ -382,7 +379,7 @@ const handleEdit = (id) => {
                   className="btn btn-secondary w-100 mt-2 text-white" 
                   onClick={() =>
                     setForm({
-                      name: '',
+                      name: userName,
                       work_group: '',
                       work_description: '',
                       quantity: '1',

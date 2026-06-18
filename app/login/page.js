@@ -51,6 +51,9 @@ export default function LoginPage() {
         {error && <div className="alert alert-danger py-1">{error}</div>}
         <button type="submit" className="btn btn-primary w-100  text-white">เข้าสู่ระบบ</button>
       </form>
+      <div className="mt-2 text-end">
+        <a href="/forgot-password" className="text-muted small">ลืมรหัสผ่าน?</a>
+      </div>
       <div className="mt-3 text-center">
         ยังไม่มีบัญชี? <a href="/signup">สมัครสมาชิก</a>
       </div>

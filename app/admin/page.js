@@ -17,6 +17,8 @@ function AdminPage() {
   const [planTo, setPlanTo] = useState("");
   const [deadlineFrom, setDeadlineFrom] = useState("");
   const [deadlineTo, setDeadlineTo] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ROWS_PER_PAGE = 10;
 
   useEffect(() => {
     const fetchRoleAndData = async () => {
@@ -100,26 +102,24 @@ function AdminPage() {
     .filter(t => (deadlineFrom ? (t.deadline && t.deadline >= deadlineFrom) : true))
     .filter(t => (deadlineTo ? (t.deadline && t.deadline <= deadlineTo) : true));
 
+  const totalPages = Math.ceil(filteredTodos.length / ROWS_PER_PAGE);
+  const pagedTodos = filteredTodos.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+
+  const handleFilterChange = (setter) => (e) => {
+    setter(e.target.value);
+    setCurrentPage(1);
+  };
+
   return (
     <> 
-      <div className="bg-primary text-white py-4 mb-4 text-center rounded" style={{background:'#e3f2fd', color:'#111'}}>
+      <div className="bg-primary text-white py-4 mb-4 text-center" style={{background:'#e3f2fd', color:'#111', position:'sticky', top:0, zIndex:100}}>
         <h1 className="mb-0">To-Do List Manager</h1>
         <p className="mb-0">Admin view — ดูข้อมูลทั้งหมด</p>
+        <div style={{ position: "absolute", top: "50%", right: 16, transform: "translateY(-50%)", display: "flex", gap: 8 }}>
+          <button onClick={() => router.push('/')} className="btn btn-light btn-sm">Home</button>
+          <button onClick={handleLogout} className="btn btn-danger btn-sm text-white">Logout</button>
+        </div>
       </div>
-      <button
-        onClick={() => router.push('/')}
-        className="btn btn-light text-blue"
-        style={{ position: "absolute", top: 70, right: 120, zIndex: 10 }}
-      >
-        Home
-      </button>
-      <button
-        onClick={handleLogout}
-        className="btn btn-danger text-white"
-        style={{ position: "absolute", top: 70, right: 32, zIndex: 10 }}
-      >
-        Logout
-      </button>
 
       <div className="container my-5">
         <div className="d-flex justify-content-between align-items-center mb-3">
@@ -129,7 +129,7 @@ function AdminPage() {
               className="form-select form-select-sm"
               style={{ width: 220 }}
               value={filterName}
-              onChange={e => setFilterName(e.target.value)}
+              onChange={handleFilterChange(setFilterName)}
             >
               <option value="">ทุกชื่อ</option>
               {uniqueNames.map(name => (
@@ -144,7 +144,7 @@ function AdminPage() {
               className="form-select form-select-sm"
               style={{ width: 150 }}
               value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
+              onChange={handleFilterChange(setFilterStatus)}
             >
               <option value="">ทุกสถานะ</option>
               <option value="Pending">Pending</option>
@@ -155,20 +155,20 @@ function AdminPage() {
 
             <div className="d-flex gap-1 align-items-center">
               <label className="small mb-0 me-1">วันที่จะทำ:</label>
-              <input type="date" className="form-control form-control-sm" value={planFrom} onChange={e => setPlanFrom(e.target.value)} />
+              <input type="date" className="form-control form-control-sm" value={planFrom} onChange={handleFilterChange(setPlanFrom)} />
               <span className="small mx-1">to</span>
-              <input type="date" className="form-control form-control-sm" value={planTo} onChange={e => setPlanTo(e.target.value)} />
+              <input type="date" className="form-control form-control-sm" value={planTo} onChange={handleFilterChange(setPlanTo)} />
             </div>
 
             <div className="d-flex gap-1 align-items-center">
               <label className="small mb-0 me-1">Deadline:</label>
-              <input type="date" className="form-control form-control-sm" value={deadlineFrom} onChange={e => setDeadlineFrom(e.target.value)} />
+              <input type="date" className="form-control form-control-sm" value={deadlineFrom} onChange={handleFilterChange(setDeadlineFrom)} />
               <span className="small mx-1">to</span>
-              <input type="date" className="form-control form-control-sm" value={deadlineTo} onChange={e => setDeadlineTo(e.target.value)} />
+              <input type="date" className="form-control form-control-sm" value={deadlineTo} onChange={handleFilterChange(setDeadlineTo)} />
             </div>
 
             {(filterName || filterStatus || planFrom || planTo || deadlineFrom || deadlineTo) && (
-              <button className="btn btn-secondary btn-sm text-white" onClick={() => { setFilterName(''); setFilterStatus(''); setPlanFrom(''); setPlanTo(''); setDeadlineFrom(''); setDeadlineTo(''); }}>Clear All</button>
+              <button className="btn btn-secondary btn-sm text-white" onClick={() => { setFilterName(''); setFilterStatus(''); setPlanFrom(''); setPlanTo(''); setDeadlineFrom(''); setDeadlineTo(''); setCurrentPage(1); }}>Clear All</button>
             )}
 
             <button className="btn btn-success btn-sm text-white" onClick={handleExport}>Export CSV</button>
@@ -191,13 +191,13 @@ function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredTodos && filteredTodos.map((todo, idx) => (
+              {pagedTodos && pagedTodos.map((todo, idx) => (
                 <tr key={todo.id} className={
                   todo.work_group === "CAPEX" ? "tr-capex" :
                   todo.work_group === "OPEX" ? "tr-opex" :
                   (todo.work_group === "FLEQ" || todo.work_group === "Teaching") ? "tr-fleq" : ""
                 }>
-                  <td>{idx + 1}</td>
+                  <td>{(currentPage - 1) * ROWS_PER_PAGE + idx + 1}</td>
                   <td>{todo.name}</td>
                   <td>{todo.work_group}</td>
                   <td style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{todo.work_description}</td>
@@ -229,6 +229,49 @@ function AdminPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="d-flex justify-content-between align-items-center mt-3">
+            <span className="text-muted small">
+              แสดง {(currentPage - 1) * ROWS_PER_PAGE + 1}–{Math.min(currentPage * ROWS_PER_PAGE, filteredTodos.length)} จาก {filteredTodos.length} รายการ
+            </span>
+            <nav>
+              <ul className="pagination pagination-sm mb-0">
+                <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+                  <button className="page-link" onClick={() => setCurrentPage(1)}>«</button>
+                </li>
+                <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+                  <button className="page-link" onClick={() => setCurrentPage(p => p - 1)}>‹</button>
+                </li>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+                  .reduce((acc, p, i, arr) => {
+                    if (i > 0 && p - arr[i - 1] > 1) acc.push("...");
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    p === "..." ? (
+                      <li key={`ellipsis-${i}`} className="page-item disabled">
+                        <span className="page-link">...</span>
+                      </li>
+                    ) : (
+                      <li key={p} className={`page-item ${p === currentPage ? "active" : ""}`}>
+                        <button className="page-link" onClick={() => setCurrentPage(p)}>{p}</button>
+                      </li>
+                    )
+                  )}
+                <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
+                  <button className="page-link" onClick={() => setCurrentPage(p => p + 1)}>›</button>
+                </li>
+                <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
+                  <button className="page-link" onClick={() => setCurrentPage(totalPages)}>»</button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        )}
       </div>
     </>
   );
