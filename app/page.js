@@ -72,7 +72,7 @@ export default function Home() {
    // เพิ่มข้อมูล To-Do ลง Supabase
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.work_group) return;
+    if (!(userName || form.name) || !form.work_group) return;
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from('todolists').insert([{ ...form, name: userName || form.name, user_id: user.id }]);
     if (!error) {
@@ -104,7 +104,7 @@ export default function Home() {
 
   const handleUpdate = async (e) => {
   e.preventDefault();
-    if (!form.name || !form.work_group) return;
+    if (!(userName || form.name) || !form.work_group) return;
     const { error } = await supabase
       .from('todolists')
       .update({ ...form, name: userName || form.name })
